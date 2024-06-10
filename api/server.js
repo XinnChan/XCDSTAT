@@ -37,6 +37,7 @@ if (cluster.isMaster) {
       process.send(0);
       res.end();
     } else {
+      res.setHeader("Content-Type", "text/html");
       res.end(index);
     }
   };
