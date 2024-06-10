@@ -4,7 +4,7 @@ const WebSocket = require("ws");
 const http = require("http");
 
 const port = 8080;
-const indexPath = path.join(__dirname, "..", "index.html");
+const indexPath = path.join(__dirname, "../index.html"); // Adjust the path according to the project structure
 const index = fs.readFileSync(indexPath, "utf8");
 
 const handler = function (req, res) {
