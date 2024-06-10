@@ -1,53 +1,36 @@
 const fs = require("fs");
 const path = require("path");
 const WebSocket = require("ws");
-const cluster = require("cluster");
-const os = require("os");
+const http = require("http");
 
-const cpus = os.cpus().length;
 const port = 8080;
-const indexPath = path.join(__dirname, "..", "index.html");  // Adjusted path
+const indexPath = path.join(__dirname, "..", "index.html");
 const index = fs.readFileSync(indexPath, "utf8");
 
-if (cluster.isMaster) {
-  console.log(`Number of CPUs is ${cpus}`);
-  console.log(`Master ${process.pid} is running`);
-
-  let requests = 0;
-  let childs = [];
-  for (let i = 0; i < cpus; i++) {
-    let child = cluster.fork();
-    child.on("message", (msg) => {
-      requests++;
-    });
-    childs.push(child);
+const handler = function (req, res) {
+  if (req.url === "/dstat") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("dstat endpoint");
+  } else if (req.url === "/favicon.ico") {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("404 Not Found");
+  } else {
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end(index);
   }
+};
 
-  setInterval(() => {
-    for (let child of childs) {
-      child.send(requests);
-    }
-    requests = 0;
-  }, 1000);
-} else {
-  console.log(`Worker ${process.pid} started`);
+const server = http.createServer(handler);
+const wss = new WebSocket.Server({ server });
 
-  const handler = function (req, res) {
-    if (req.url == "/dstat") {
-      process.send(0);
-      res.end();
-    } else {
-      res.setHeader("Content-Type", "text/html");
-      res.end(index);
-    }
-  };
+wss.on("connection", (ws) => {
+  ws.send("Connected to WebSocket server");
+  // Here you can handle incoming messages and send updates
+});
 
-  const server = require("http").createServer(handler);
-  const wss = new WebSocket.Server({ server });
+server.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
 
-  process.on("message", (requests) => {
-    wss.clients.forEach((client) => client.send(requests));
-  });
-
-  server.listen(port);
-}
+// Export the server for Vercel
+module.exports = server;
